@@ -239,13 +239,14 @@ private:
   Leap::Controller controller;
   boost::mutex mutex;
   FrameWriter writer;
-
+  bool stop_depositing;
 public:
   Splash (Str const& output_pool)
     :  Thing (),
        pool (output_pool),
        listener (*this),
-       controller (listener)
+       controller (listener),
+       stop_depositing (false)
   { ParticipateInPool (pool);
     controller . enableGesture (Leap::Gesture::TYPE_CIRCLE);
     controller . enableGesture (Leap::Gesture::TYPE_SWIPE);
@@ -254,7 +255,12 @@ public:
   }
 
   virtual ~Splash ()
-  { if (controller . isConnected ())
+  { // Make sure we don't try to deposit any more proteins after
+    // the application shuts down.
+    { boost::mutex::scoped_lock lck (mutex);
+      stop_depositing = true;
+    }
+    if (controller . isConnected ())
       controller . removeListener (listener);
   }
 
@@ -271,7 +277,8 @@ public:
     // The leap runs in its own thread.  Make sure that we don't try
     // to deposit two proteins at the same time.
     boost::mutex::scoped_lock lck (mutex);
-    Deposit (p, pool);
+    if (! stop_depositing)
+      Deposit (p, pool);
   }
 
   /// Reads in a configuration protein to set up the spatial layout of
