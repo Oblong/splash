@@ -299,8 +299,8 @@ public:
     if (screen . MapFind ("cent") . Into (origin) &&
         screen . MapFind ("over") . Into (over))
       { normal = Vect (0, 1, 0);
-        origin -= DEFAULT_Z_DISTANCE * normal . Norm ()
-          + DEFAULT_Y_DISTANCE * normal . Cross (over) . Norm ();
+        origin -= DEFAULT_Y_DISTANCE * normal . Norm ()
+          + DEFAULT_Z_DISTANCE * normal . Cross (over) . Norm ();
         writer . SetLocAndOrientation (origin, normal, over);
         return true;
       }
