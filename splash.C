@@ -8,9 +8,8 @@
 #include <Leap.h>
 #define WORKER
 #include <Greenhouse.h>
-
+#include <list>
 #include <boost/thread/mutex.hpp>
-
 
 /// FrameWriter: A handy class to transform leap types into plasma types
 class FrameWriter {
@@ -239,6 +238,7 @@ private:
   Leap::Controller controller;
   boost::mutex mutex;
   FrameWriter writer;
+  std::list<Protein> to_deposit;
   bool stop_depositing;
 public:
   Splash (Str const& output_pool)
@@ -278,6 +278,15 @@ public:
     // to deposit two proteins at the same time.
     boost::mutex::scoped_lock lck (mutex);
     if (! stop_depositing)
+      to_deposit . push_back (p);
+  }
+
+  virtual void Travail ()
+  { std::list<Protein> copy;
+    { boost::mutex::scoped_lock lck (mutex);
+      std::swap (copy, to_deposit);
+    }
+    for (Protein const& p : copy)
       Deposit (p, pool);
   }
 
