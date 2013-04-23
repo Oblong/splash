@@ -264,9 +264,6 @@ public:
       controller . removeListener (listener);
   }
 
-  void Start ()
-  { controller . addListener (listener); }
-
   /// The handler function for each Leap frame, it takes a leap frame,
   /// transforms it to a protein and deposits it to the leap pool
   void DepositFrame (Leap::Frame const& f)
