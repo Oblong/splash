@@ -24,7 +24,7 @@ endif
 
 
 splash: splash.C
-	${CXX} ${CXXFLAGS} $^ `PKG_CONFIG_PATH=$(PKG_CONFIG_PATH):/opt/oblong/greenhouse/lib/pkgconfig pkg-config --libs --cflags --static libGreenhouse` ${LEAP_LDFLAGS} -I${LEAPSDK_HOME}/include -I.. -I../.. -L${LEAPSDK_HOME}/lib -lGreenhouse -lLeap -lboost_system -lboost_thread  -o $@
+	${CXX} ${CXXFLAGS} $^ `PKG_CONFIG_PATH=$(PKG_CONFIG_PATH):/opt/oblong/greenhouse/lib/pkgconfig /opt/oblong/deps-64-8/bin/pkg-config --libs --cflags --static libGreenhouse` ${LEAP_LDFLAGS} -I${LEAPSDK_HOME}/include -I.. -I../.. -L${LEAPSDK_HOME}/lib -lGreenhouse -lLeap -lboost_system -lboost_thread  -o $@
 
 clean:
 	rm -f splash
