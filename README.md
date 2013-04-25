@@ -19,17 +19,24 @@ version 0.7.9 of the Leap SDK.
 
 ## Running
 
+(Assuming the Leap device is connected and Leap.app is running happily...)
+
     $ ./splash
 
 Make sure that the Leap shared library is on your `LD_LIBRARY_PATH`
 (or `DYLD_LIBRARY_PATH` if you're using a Mac) before you start
-splash.
+splash. 
+
+Example: 
+
+    $ DYLD_LIBRARY_PATH=~/src/leap/LeapSDK/lib/libc++/ ./splash
 
 
 ### Arguments
 
 Optionally, `splash` takes the fully qualified path to a protein file
-that describes its location.  Its format is as follows:
+that describes the physical location of the Leap sensor.  The file format 
+is as follows:
 
     descrips: # ignored
     ingests:
@@ -40,15 +47,16 @@ that describes its location.  Its format is as follows:
         provenance: "leap-whatever" # Str, optional, defaults to "leap-$HOSTNAME"
 
 If a protein file is not supplied on the command line, `splash` will
-try to find the same ingest key in the `/etc/oblong/screen.protein` file.
+try to find a 'leap' section in the ingests of the `/etc/oblong/screen.protein` 
+file.
 
-If the appropriate ingest keys are not found in the `screen.protein` file,
-`splash` will assume that your Leap is 500mm in front and 200mm below the
-center of the "main" screen described in your `screen.protein` file.
+If that can't be found, `splash` will assume that your Leap is 500mm in front 
+and 200mm below the center of the "main" screen described in your `screen.protein` 
+file.
 
-If a `screen.protein` file can not be found, or if it can and it does not
-contain a screen called "main", `splash` will warn you of as much and will
-pass the leap's data through in its native, relative space.
+If a `screen.protein` file can't be found, or if it does not contain a screen 
+called "main", `splash` will warn you of as much and will pass the leap's data 
+through in its native, relative space.
 
 For more information on Greenhouse's spatial understanding refer to this
 [Spatial Considerations tutorial](http://greenhouse.oblong.com/learning/spatial.html).
@@ -56,14 +64,16 @@ For more information on Greenhouse's spatial understanding refer to this
 ### Environment
 
 By default, `splash` deposits Leap proteins to a local pool called "leap". You
-can specify a different pool to deposit the Leap's information in to via the
-`LEAP_POOL` environment variable.  Note that this pool must exist before you run
-`splash.`
+can specify a different pool to use via the `LEAP_POOL` environment variable. 
+Note that this pool must exist before you run `splash.`
 
     $ p-create my_new_leap_pool
     $ LEAP_POOL=my_new_leap_pool ./splash
 
 ## Output Format
+
+To see the output from `splash` in a human-readable format, use the peek command. 
+`peek leap` (or the name of some other pool you specified) at the command line. 
 
 `splash` produces proteins of the following format:
 
