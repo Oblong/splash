@@ -252,6 +252,7 @@ public:
     controller . enableGesture (Leap::Gesture::TYPE_SWIPE);
     controller . enableGesture (Leap::Gesture::TYPE_SCREEN_TAP);
     controller . enableGesture (Leap::Gesture::TYPE_KEY_TAP);
+    controller . setPolicyFlags (Leap::Controller::POLICY_BACKGROUND_FRAMES);
   }
 
   virtual ~Splash ()
