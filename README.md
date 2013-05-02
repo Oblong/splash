@@ -70,7 +70,7 @@ can specify a different pool to deposit the Leap's information in to via the
     descrips:
     - greenhouse
     - leap
-    - 0.7.6 # The version of the Leap Motion API
+    - 0.7.9 # The version of the Leap Motion API
     ingests:
       leap:
         orig: v3float64 # the center of the Leap device itself
