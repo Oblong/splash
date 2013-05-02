@@ -223,7 +223,7 @@ public:
 };
 
 // Surely there's a way to get this from Leap's API...?
-static const Str LEAP_VERSION = "0.7.6";
+static const Str LEAP_VERSION = "0.7.9";
 static const float64 DEFAULT_Z_DISTANCE = 500.0;
 static const float64 DEFAULT_Y_DISTANCE = 200.0;
 

@@ -13,11 +13,9 @@ SDK lives.  From there it should just be a matter of running `make`.
 
 ### Leap SDK version recommendation
 
-`splash` is meant to run as a background process, feeding proteins to other
-foregrounded applications, perhaps running on multiple computers.  Version
-0.7.6 of Leap's SDK is currently recommended, as it will deliver tracking
-data to listeners regardless of whether or not they have system focus.
-
+To support the [`POLICY_BACKGROUND_FRAMES`](https://developer.leapmotion.com/articles/testing-background-leap-applications)
+flag in the Leap Motion controller, `splash` now requires at least
+version 0.7.9 of the Leap SDK.
 
 ## Running
 
