@@ -1,79 +1,87 @@
 # Splash
 
-A [Greenhouse](http://greenhouse.oblong.com/) worker that transforms
-the Leap Motion's relative coordinates to real-world coordinates and
-deposits each transformed frame into a local pool, 'leap'.
+Splash is a [Greenhouse](http://greenhouse.oblong.com/) program that transforms the Leap Motion's relative coordinates to absolute coordinates.  Splash streams its data output as a series of messages into a Greenhouse pool (named **leap**).  Any number of other programs can listen to that pool and get the data.
+
+(Pools are part of the Greenhouse message-passing system known as **Plasma**.  It's a lighweight publish/subscribe system that scratches some of the same itches as OSC or 0MQ's pubsub.  More details about **Plasma** [can be found here](http://greenhouse.oblong.com/reference/messaging.html#qr_pools).)
+
+Splash is a command-line utility -- it runs in the terminal only.
+
+Splash reads Leap data using the Leap SDK (which you must have already installed).  Splash also assumes you have already installed [Greenhouse](http://greenhouse.oblong.com/), a free SDK from Oblong for creating spatial, gestural, multi-modal, and multi-machine applications.
+
 
 ## Building
 
-Make sure to set `LEAPSDK_HOME` to the directory where your Leap
-SDK lives.  From there it should just be a matter of running `make`.
+Make sure to set `LEAPSDK_HOME` to the directory where your Leap SDK lives.  Then `make`.
 
-    $ LEAPSDK_HOME=/path/to/leapsdk make
+    $ export LEAPSDK_HOME=/path/to/LeapSDK
+    $ make
 
-### Leap SDK version recommendation
+### Leap SDK version
 
 To support the [`POLICY_BACKGROUND_FRAMES`](https://developer.leapmotion.com/articles/testing-background-leap-applications)
-flag in the Leap Motion controller, `splash` now requires at least
+flag in the Leap Motion controller, `splash` requires at least
 version 0.7.9 of the Leap SDK.
+
 
 ## Running
 
-(Assuming the Leap device is connected and Leap.app is running happily...)
+### Before running splash
 
+1. Run the Leap Motion application
+2. Connect a Leap device
+3. Verify that the Leap system is working.
+
+### Actually running splash
+
+The Leap shared library must be on your `LD_LIBRARY_PATH` (or `DYLD_LIBRARY_PATH` if you're using a Mac) before you start splash.  e.g.:
+
+    $ export DYLD_LIBRARY_PATH=/path/to/LeapSDK/lib/libc++/
     $ ./splash
 
-Make sure that the Leap shared library is on your `LD_LIBRARY_PATH`
-(or `DYLD_LIBRARY_PATH` if you're using a Mac) before you start
-splash. 
+or
 
-Example: 
-
-    $ DYLD_LIBRARY_PATH=~/src/leap/LeapSDK/lib/libc++/ ./splash
+    $ DYLD_LIBRARY_PATH=/path/to/LeapSDK/lib/libc++/ ./splash
 
 
 ### Arguments
 
-Optionally, `splash` takes the fully qualified path to a protein file
-that describes the physical location of the Leap sensor.  The file format 
-is as follows:
+Optionally, `splash` takes the fully qualified path to a simple settings file that describes the physical location of the Leap sensor.  The file format is as follows:
 
     descrips: # ignored
     ingests:
       leap:
-        cent: [0, 0, 0] # v3float64, required, real-space location
-        norm: [0, 1, 0] # v3float64, required, real-space normal vector
-        over: [1, 0, 0] # v3float64, required, real-space over vector
-        provenance: "leap-whatever" # Str, optional, defaults to "leap-$HOSTNAME"
+        cent: [0, 0, 0]   # required, center of the leap device in absolute coordinates
+        norm: [0, 1, 0]   # required, normal vector from the face of the leap device
+        over: [1, 0, 0]   # required, vector pointing lengthwise along the device
+        provenance: "leap-whatever"  # optional, defaults to "leap-$HOSTNAME"
 
-If a protein file is not supplied on the command line, `splash` will
-try to find a 'leap' section in the ingests of the `/etc/oblong/screen.protein` 
-file.
+'norm' is usually 'up' along the Y axis, because the Leap device is usually lying on a flat surface.
 
-If that can't be found, `splash` will assume that your Leap is 500mm in front 
-and 200mm below the center of the "main" screen described in your `screen.protein` 
-file.
+'over' is usually to the user's right (so it's positive in the X axis).
 
-If a `screen.protein` file can't be found, or if it does not contain a screen 
-called "main", `splash` will warn you of as much and will pass the leap's data 
-through in its native, relative space.
+If a settings file is not supplied on the command line, `splash` will try to find a 'leap' section in the ingests of the `/etc/oblong/screen.protein` file.  (This file would have been installed by the Greenhouse installer.)
 
-For more information on Greenhouse's spatial understanding refer to this
-[Spatial Considerations tutorial](http://greenhouse.oblong.com/learning/spatial.html).
+If a 'leap' section isn't found in screen.protein, `splash` will just assume that your Leap is 500mm in front and 200mm below the center of the "main" screen described in your `/etc/oblong/screen.protein` file.
+
+If a `screen.protein` file can't be found, or if it does not contain a screen called "main", `splash` will warn you of as much and will pass the leap's data through in the native (relative) coordinates supplied by the Leap SDK.
+
+For more information on how Greenhouse works with 3D space refer to this [Spatial Considerations tutorial](http://greenhouse.oblong.com/learning/spatial.html).
 
 ### Environment
 
-By default, `splash` deposits Leap proteins to a local pool called "leap". You
-can specify a different pool to use via the `LEAP_POOL` environment variable. 
+By default, `splash` deposits its output (a series of Plasma messages referred to as proteins') into a pool called "leap".  Any number of Greenhouse programs on the same machine can listen to that pool (in Greenhouse parlance, they "participate" in the pool.)  If there are Greenhouse programs on a different machine that would like to listen, they can refer to the pool as "tcp://your-host-name/leap".
+
+You can optionally specify a different pool to use via the `LEAP_POOL` environment variable.
 Note that this pool must exist before you run `splash.`
 
     $ p-create my_new_leap_pool
     $ LEAP_POOL=my_new_leap_pool ./splash
 
+
 ## Output Format
 
-To see the output from `splash` in a human-readable format, use the peek command. 
-`peek leap` (or the name of some other pool you specified) at the command line. 
+To see the output from `splash` in a human-readable format, use the peek command.
+`peek leap` (or the name of some other pool you specified) at the command line.
 
 `splash` produces proteins of the following format:
 
