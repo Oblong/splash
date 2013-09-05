@@ -8,6 +8,7 @@ Splash is a command-line utility -- it runs in the terminal only.
 
 Splash reads Leap data using the Leap SDK (which you must have already installed).  Splash also assumes you have already installed [Greenhouse](http://greenhouse.oblong.com/), a free SDK from Oblong for creating spatial, gestural, multi-modal, and multi-machine applications.
 
+To learn more about how to set up a Greenhouse program to work with Splash and Leap Motion input, see [this tutorial on the Greenhouse site](http://greenhouse.oblong.com/learning/hardware_leap.html).
 
 ## Building
 
@@ -27,9 +28,8 @@ version 0.7.9 of the Leap SDK.
 
 ### Before running splash
 
-1. Run the Leap Motion application
-2. Connect a Leap device
-3. Verify that the Leap system is working.
+1. Connect a Leap device
+2. Verify that the Leap system is working (e.g. with the Leap's own software).
 
 ### Actually running splash
 
@@ -41,6 +41,10 @@ The Leap shared library must be on your `LD_LIBRARY_PATH` (or `DYLD_LIBRARY_PATH
 or
 
     $ DYLD_LIBRARY_PATH=/path/to/LeapSDK/lib/libc++/ ./splash
+
+### To check that it's working
+
+To see the output from `splash` in a human-readable format, use the peek command at the terminal: `peek leap`.  You should see data scrolling by quickly, representing the messages that splash is depositing into the **leap** pool; when you hover a hand in view of the Leap, the data should resemble the output shown below in the **Output Format** section.
 
 
 ### Arguments
@@ -69,7 +73,9 @@ For more information on how Greenhouse works with 3D space refer to this [Spatia
 
 ### Environment
 
-By default, `splash` deposits its output (a series of Plasma messages referred to as proteins') into a pool called "leap".  Any number of Greenhouse programs on the same machine can listen to that pool (in Greenhouse parlance, they "participate" in the pool.)  If there are Greenhouse programs on a different machine that would like to listen, they can refer to the pool as "tcp://your-host-name/leap".
+By default, `splash` deposits its output (a series of messages which in Oblong parlance are referred to as *proteins*') into a pool called "leap".  Any number of Greenhouse programs on the same machine can listen to (or "particpate in") that pool.
+
+If there are Greenhouse programs on a different machine that would like to listen, they can refer to the pool as "tcp://your-host-name/leap".
 
 You can optionally specify a different pool to use via the `LEAP_POOL` environment variable.
 Note that this pool must exist before you run `splash.`
