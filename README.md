@@ -51,6 +51,9 @@ To see the output from `splash` in a human-readable format, use the peek command
 
 Optionally, `splash` takes the fully qualified path to a simple settings file that describes the physical location of the Leap sensor.  The file format is as follows:
 
+    %YAML 1.1
+    %TAG ! tag:oblong.com,2009:slaw/
+    --- !protein
     descrips: # ignored
     ingests:
       leap:
