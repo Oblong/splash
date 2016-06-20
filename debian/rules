@@ -1,0 +1,59 @@
+#!/usr/bin/make -f
+# -*- makefile -*-
+
+SRC=$(shell pwd)
+# use same value as dh_auto_clean
+BTMP=$(SRC)/obj-x86_64-linux-gnu
+
+PREFIX=/opt/oblong/splash
+
+# G_SPEAK_HOME is the directory where the g-speak SDK we link against is found.
+# NOTE: To change which g-speak this project uses, edit g-speak.dat to say e.g.
+#   G_SPEAK_HOME=/opt/oblong/g-speak3.22
+# Be careful to not add spaces.
+# You can also use e.g. -DG_SPEAK_HOME=/opt/oblong/g-speak3.22 on cmake commandline.
+# TIP: If you're building debian packages, run e.g.
+#   sh set-gspeak.sh 3.22
+# instead, so YOBUILD and debian/control also get updated properly.
+G_SPEAK_HOME=`awk -F= '/G_SPEAK_HOME=/ { print $2 }' g-speak.dat`
+export G_SPEAK_HOME
+YOBUILD=/opt/oblong/deps-64-11
+export YOBUILD
+# Make dh_shlibdeps happy
+LD_LIBRARY_PATH += :$(G_SPEAK_HOME)/lib:$(YOBUILD)/lib
+export LD_LIBRARY_PATH
+
+CMAKE_OPTIONS=\
+            -DCMAKE_INSTALL_PREFIX=$(PREFIX) \
+            -DUSE_STATIC_G_SPEAK:BOOL=off \
+#
+
+# Uncomment this to turn on verbose mode.
+export DH_VERBOSE=1
+
+%:
+	dh $@
+
+# Note: cmake-generated Makefiles can't handle -j4 with multiple targets,
+# so invoke make once for each target you want to build.
+# See https://bugs.launchpad.net/ubuntu/+source/binutils/+bug/423756
+override_dh_auto_build:
+	mkdir -p $(BTMP)
+	cmake \
+            $(CMAKE_OPTIONS) \
+            -H$(SRC) -B$(BTMP) --check-build-system CMakeFiles/Makefile.cmake 0
+	cmake -E cmake_progress_start $(BTMP)/CMakeFiles $(BTMP)/CMakeFiles/progress.marks
+	cd $(BTMP); make -f CMakeFiles/Makefile2 all -j4
+
+override_dh_auto_test:
+	cd $(BTMP); ctest --verbose
+
+override_dh_auto_configure:
+	dh_auto_configure -- $(CMAKE_OPTIONS)
+
+# libGL,so, don't bother me
+override_dh_shlibdeps:
+	dh_shlibdeps -- --ignore-missing-info
+
+override_dh_strip:
+	dh_strip -poblong-splash-gs3.25x1 --dbg-package=oblong-splash-gs3.25x1-dbg

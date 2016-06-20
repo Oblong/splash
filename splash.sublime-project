@@ -1,0 +1,37 @@
+{
+	"build_systems":
+	[
+		{
+			"file_regex": "/([^:]+):(\\d+):(\\d+): ",
+			"line_regex": "/[^/:]+:(\\d+):(\\d+): ",
+			"name": "obi-build",
+			"shell_cmd": "cd ${project_path}; obi build",
+			"working_dir": "/"
+		},
+		{
+			"file_regex": "/([^:]+):(\\d+):(\\d+): ",
+			"line_regex": "/[^/:]+:(\\d+):(\\d+): ",
+			"name": "obi-go",
+			"shell_cmd": "cd ${project_path}; obi go",
+			"working_dir": "/"
+		},
+		{
+			"file_regex": "/([^:]+):(\\d+):(\\d+): ",
+			"line_regex": "/[^/:]+:(\\d+):(\\d+): ",
+			"name": "obi-go:my-room",
+			"shell_cmd": "cd ${project_path}; obi go my-room",
+			"working_dir": "/"
+		}
+	],
+	"folders":
+	[
+		{
+			"follow_symlinks": true,
+			"path": ".",
+			"folder_exclude_patterns": ["build", "bin", "node_modules"]
+		}
+	],
+	"settings":
+	{
+	}
+}

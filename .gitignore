@@ -1,0 +1,8 @@
+build
+bin
+*.pyc
+node_modules/
+*.map
+.DS_Store
+/*.log
+obi-*-localhost.sh
