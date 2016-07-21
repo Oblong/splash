@@ -66,14 +66,17 @@ protected:
       phys_origin  = Point (h . palmPosition ()),
       phys_through = phys_origin + Direction (h . direction ());
     return Slaw::Map ("id", h . id (),
-                      "dir", ToSlaw (Direction (h . direction ())),
-                      "plmnrm", ToSlaw (Direction (h . palmNormal ())),
-                      "plmpos", ToSlaw (phys_origin),
-                      "plmvel", ToSlaw (h . palmVelocity ()),
-                      "center", ToSlaw (Direction (h . sphereCenter ())),
-                      "radius", h . sphereRadius (),
-                      "orig", ToSlaw (phys_origin),
-                      "thru", ToSlaw (phys_through));
+                      "pinch", h . pinchStrength (),
+                      "grab", h . grabStrength (),
+                      "fingers", ToSlaw (h . fingers ()),
+                      "dir", ToSlaw (Direction (h . direction ())))
+      . MapMerge (Slaw::Map ("plmnrm", ToSlaw (Direction (h . palmNormal ())),
+                             "plmpos", ToSlaw (phys_origin),
+                             "plmvel", ToSlaw (h . palmVelocity ()),
+                             "center", ToSlaw (Direction (h . sphereCenter ())),
+                             "radius", h . sphereRadius (),
+                             "orig", ToSlaw (phys_origin),
+                             "thru", ToSlaw (phys_through)));
   }
 
   /// Returns a Leap::Gesture::State as a slaw wrapped string
@@ -161,6 +164,14 @@ protected:
                   "prog", s . progress ()));
   }
 
+  /// Creates a slaw that lists the finger ids from thumb to pinkie
+  Slaw ToSlaw (Leap::FingerList const& s) const
+  { Slaw l = Slaw::List ();
+    for (int f = 0  ;  f < s . count ()  ;  f++)
+      l = l . ListAppend (s[f] . id ());
+    return l;
+  }
+
   /// returns the hostname of the machine running splash
   static const Str Hostname ()
   { const size_t MAX_HOSTNAME = 64;
@@ -224,7 +235,7 @@ public:
 
 // Surely there's a way to get this from Leap's API...?
 static const Str LEAP_VERSION = "0.7.9";
-static const float64 DEFAULT_Z_DISTANCE = 500.0;
+static const float64 DEFAULT_Z_DISTANCE = 0.0;//500.0;
 static const float64 DEFAULT_Y_DISTANCE = 200.0;
 
 /// The main class type for Splash. It sets up the leap controller, the
