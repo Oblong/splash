@@ -11,16 +11,38 @@
 #include <list>
 #include <boost/thread/mutex.hpp>
 
+#define MIN_CONFIDENCE 0.4
+
 /// FrameWriter: A handy class to transform leap types into plasma types
 class FrameWriter {
 protected:
   Leap::Vector origin, normal, over;
   Leap::Matrix transform;
-  Str provenance;
+//  Str provenance;
+
+  struct phalange {
+    Str type;
+    Vect loc, norm, over;
+    bool occluded;
+    phalange (const Str &t)
+    { type = t;
+      occluded = true;
+    }
+    Slaw toSlaw ()
+    { return Slaw::Map ("type", type,
+                        "loc", loc,
+                        "norm", norm,
+                        "over", over,
+                        "occluded", occluded);
+    }
+  };
 
   /// Transform g-speak Vect into Leap Vector
-  const Leap::Vector VV (Vect const& v) const
+  const Leap::Vector LV (Vect const& v) const
   { return Leap::Vector (v.x, v.y, v.z); }
+
+  const Vect GV (Leap::Vector const& v) const
+  { return Vect (v.x, v.y, v.z); }
 
   /// Takes a relative direction from Leap and returns it's absolute direction
   Leap::Vector const Direction (Leap::Vector const& v) const
@@ -29,185 +51,159 @@ protected:
   Leap::Vector const Point (Leap::Vector const& v) const
   { return transform . transformPoint (v); }
 
-  /// Transforms a Leap Vector in to a g-speak Vect and wraps it in a Slaw
-  Slaw ToSlaw (Leap::Vector const &v) const
-  { return Slaw (Vect (v.x, v.y, v.z)); }
-
-  /// Transforms a list into a Slaw list
-  template <typename Lst>
-  Slaw ToSlaw (Lst const &ll) const {
-    Slaw out = Slaw::List ();
-    for (auto &x : ll)
-      out = out . ListAppend (ToSlaw (x));
-    return out;
+  Slaw ProcessFingers (Leap::FingerList const &fl, const Vect &pNorm,
+                       const Vect &pUp, Vect *aim, Str &gripe) const
+  { char gstring [] = "_____";
+    phalange phalanges [5] = { phalange ("THUMB"),
+                               phalange ("INDEX"),
+                               phalange ("MIDDLE"),
+                               phalange ("RING"),
+                               phalange ("PINKY") };
+    // for (int i = 0)
+    // Str types [5] = { "THUMB", "INDEX", "MIDDLE", "RING", "PINKY" };
+    for (int i = fl.count () - 1  ;  i >= 0  ;  i--)
+      { Leap::Finger f = fl[i];
+        int t = f.type ();
+        phalange p = phalanges [t];
+        p.loc = GV (Point (f.stabilizedTipPosition ()));
+        p.occluded = false;
+        if (f.isExtended ())
+          { if (t == 0)
+              { Vect dir = GV (Direction (f.direction ()));
+                gstring [4-t] = dir . AngleWith (pUp) < (0.3 * M_PI) ? '-' : '|';
+              }
+            else
+              { gstring [4-t] = '|';
+                if (t == 1 && aim)
+                  aim  -> Set (p.loc);
+              }
+          }
+        else
+          { if (t == 0)
+              gstring [4-t] = '>';
+            else
+              { Vect dir = GV (Direction (f.direction ()));
+                gstring [4-t] = dir . AngleWith (pNorm) < M_PI / 4.0 ? 'x' : '^';
+              }
+          }
+        phalanges [t] = p;
+      }
+    gripe = Str () . Sprintf ("%s", gstring);
+    return Slaw::List (phalanges [4].toSlaw (),
+                       phalanges [3].toSlaw (),
+                       phalanges [2].toSlaw (),
+                       phalanges [1].toSlaw (),
+                       phalanges [0].toSlaw ());
   }
 
-  /// Creates a slaw that fully describes a Leap Pointing gesture
-  Slaw ToSlaw (Leap::Pointable const& p) const
-  { Leap::Vector
-      phys_origin = Point (p . tipPosition ()),
-      phys_through = phys_origin + p . length () * Direction (p . direction ());
-    return Slaw::Map ("id", p . id (),
-                      "dir", ToSlaw (Direction (p . direction ())),
-                      "hand", p . hand () . id (),
-                      "isfngr", p . isFinger (),
-                      "istool", p . isTool (),
-                      "length", p . length ())
-      . MapMerge (Slaw::Map ("t-pos", ToSlaw (phys_origin),
-                             "t-vel", ToSlaw (p . tipVelocity ()),
-                             "width", p . width (),
-                             "orig", ToSlaw (phys_origin),
-                             "thru", ToSlaw (phys_through)));
+  // Here we possibly incorrectly assume that the room's norm and over
+  // are (0, 0, 1) and (1, 0, 0) respectively and that the person is
+  // aligned with the leap and the room
+  Str directionalGripe (Vect dir, bool leftish) const
+  { float64 min_angle = 4.0 * M_PI;
+    int32 min_dir = -1;
+
+    Vect dirs [6] = { Vect (1, 0, 0), Vect (-1, 0, 0),
+                      Vect (0, 1, 0), Vect (0, -1, 0),
+                      Vect (0, 0, 1), Vect (0, 0, -1) };
+
+    for (int i = 0  ;  i < 6  ;  i++)
+      { float64 angle = dir . AngleWith (dirs [i]);
+        if (angle < min_angle)
+          { min_dir = i;
+            min_angle = angle;
+          }
+      }
+
+    switch (min_dir) {
+      case 0: return leftish ? "-" : "+"; // lateral/medial
+      case 1: return leftish ? "+" : "-"; // lateral/medial
+      case 2: return "^"; // cranial
+      case 3: return "v"; // caudal
+      case 4: return "."; // posterior
+      case 5: return "x"; // anterior
+      default: return "_"; // unknown
+    };
+
+    return "_";
+  }
+
+  Slaw MissingHand (const Str &type) const
+  { Vect v;
+    return Slaw::Map ("gripe", "_____:__",
+                      "type", type,
+                      "loc", v,
+                      "aim", v,
+                      "back", Slaw::Map ("loc", v,
+                                         "norm", v,
+                                         "over", v,
+                                         "occluded", true),
+                      "fingers", Slaw::List (phalange ("PINKY").toSlaw (),
+                                             phalange ("RING").toSlaw (),
+                                             phalange ("MIDDLE").toSlaw (),
+                                             phalange ("INDEX").toSlaw (),
+                                             phalange ("THUMB").toSlaw ()));
+  }
+
+  Slaw ToSlaw (Leap::Hand const& h) const
+  { Vect loc = GV (Point (h . stabilizedPalmPosition ()));
+    Vect aim = GV (Direction (h . direction ()));
+    Vect pnorm = GV (Direction (h . palmNormal ()));
+    Vect norm = - pnorm;
+    Vect up = norm . Cross (aim);
+    Str type = h . isLeft () ? "LEFTISH" : "RIGHTISH";
+    bool occ = h . confidence () >= MIN_CONFIDENCE;
+    Str gripe = "_____:__";
+    Slaw fingers = ProcessFingers (h . fingers (), pnorm, up, &aim, gripe);
+    gripe = gripe + ":" + directionalGripe (pnorm, h . isLeft ()) +
+            directionalGripe (aim, h . isLeft ());
+    return Slaw::Map ("gripe", gripe,
+                      "type", type,
+                      "loc", loc,
+                      "aim", aim,
+                      "back", Slaw::Map ("loc", loc,
+                                         "norm", norm,
+                                         "over", up,
+                                         "occluded", occ),
+                      "fingers", fingers);
   }
 
   /// Creates a slaw that fully describes a Hand found by the Leap
-  Slaw ToSlaw (Leap::Hand const& h) const
-  { Leap::Vector
-      phys_origin  = Point (h . palmPosition ()),
-      phys_through = phys_origin + Direction (h . direction ());
-    return Slaw::Map ("id", h . id (),
-                      "dir", ToSlaw (Direction (h . direction ())),
-                      "plmnrm", ToSlaw (Direction (h . palmNormal ())),
-                      "plmpos", ToSlaw (phys_origin),
-                      "plmvel", ToSlaw (h . palmVelocity ()),
-                      "center", ToSlaw (Direction (h . sphereCenter ())),
-                      "radius", h . sphereRadius (),
-                      "orig", ToSlaw (phys_origin),
-                      "thru", ToSlaw (phys_through));
+  Slaw ToSlaw (Leap::HandList const& hl) const
+  { if (hl . count () == 1)
+      { Leap::Hand h = hl [0];
+        Str missing = h . isLeft () ? "RIGHTISH" : "LEFTISH";
+        return Slaw::List (ToSlaw (h),
+                           MissingHand (missing));
+      }
+    else if (hl . count () == 0)
+      { return Slaw::List (MissingHand ("RIGHTISH"), MissingHand ("LEFTISH"));
+      }
+
+    Slaw hands = Slaw::List ();
+    for (int i = 0  ;  i < hl . count ()  ;  i++)
+      hands = hands . ListAppend (ToSlaw (hl[i]));
+    return hands;
   }
-
-  /// Returns a Leap::Gesture::State as a slaw wrapped string
-  Slaw ToSlaw (Leap::Gesture::State const& s) const
-  { switch (s) {
-    case Leap::Gesture::STATE_START: return Slaw ("start");
-    case Leap::Gesture::STATE_UPDATE: return Slaw ("update");
-    case Leap::Gesture::STATE_STOP: return Slaw ("stop");
-    default: return Slaw ("invalid");
-    }
-  }
-
-
-  /// Transforms a list into a Slaw list of just id's
-  template <typename Lst>
-  Slaw IDs (Lst const& lst) const
-  { Slaw out = Slaw::List ();
-    for (auto &x : lst)
-      out = out . ListAppend (x . id ());
-    return out;
-  }
-
-  /// Creates a slaw that fully describes a Leap Gesture
-  Slaw ToSlaw (Leap::Gesture const& g) const
-  { Slaw out = Slaw::Map ("id", g . id (),
-                          "dur", g . duration (),
-                          "dursec", g . durationSeconds (),
-                          "hands", IDs (g . hands ()),
-                          "pntrs", IDs (g . pointables ()),
-                          "state", ToSlaw (g . state ()));
-    switch (g . type ()) {
-    case Leap::Gesture::TYPE_SWIPE:
-      return ToSlaw ((Leap::SwipeGesture const&) g, out);
-    case Leap::Gesture::TYPE_CIRCLE:
-      return ToSlaw ((Leap::CircleGesture const&) g, out);
-    case Leap::Gesture::TYPE_SCREEN_TAP:
-      return ToSlaw ((Leap::ScreenTapGesture const&) g, out);
-    case Leap::Gesture::TYPE_KEY_TAP:
-      return ToSlaw ((Leap::KeyTapGesture const&) g, out);
-    default:
-      out = out . MapPut ("type", "invalid");
-      return out;
-    }
-  }
-
-  /// Creates a slaw that fully describes a Leap "circle" gesture
-  Slaw ToSlaw (Leap::CircleGesture const& c, Slaw out) const
-  { return out . MapMerge
-      (Slaw::Map ("type", "circle",
-                  "point", c . pointable () . id (),
-                  "cent", ToSlaw (Point (c . center ())),
-                  "norm", ToSlaw (Direction (c . normal ())),
-                  "prog", c . progress (),
-                  "radius", c . radius ()));
-  }
-
-  /// Creates a slaw that fully describes a Leap "swipe" gesture
-  Slaw ToSlaw (Leap::SwipeGesture const& s, Slaw out) const
-  { return out . MapMerge
-      (Slaw::Map ("type", "swipe",
-                  "dir", ToSlaw (Direction (s . direction ())),
-                  "point", s . pointable () . id (),
-                  "pos", ToSlaw (Point (s . position ())),
-                  "speed", s . speed (),
-                  "start", ToSlaw (Point (s . startPosition ()))));
-  }
-
-  /// Creates a slaw that fully describes a Leap "screen tap" gesture
-  Slaw ToSlaw (Leap::ScreenTapGesture const& s, Slaw out) const
-  { return out . MapMerge
-      (Slaw::Map ("type", "s-tap",
-                  "dir", ToSlaw (Direction (s . direction ())),
-                  "point", s . pointable () . id (),
-                  "pos", ToSlaw (Point (s . position ())),
-                  "prog", s . progress ()));
-  }
-
-  /// Creates a slaw that fully describes a Leap "key tap" gesture
-  Slaw ToSlaw (Leap::KeyTapGesture const& s, Slaw out) const
-  { return out . MapMerge
-      (Slaw::Map ("type", "k-tap",
-                  "dir", ToSlaw (Direction (s . direction ())),
-                  "point", s . pointable () . id (),
-                  "pos", ToSlaw (Point (s . position ())),
-                  "prog", s . progress ()));
-  }
-
-  /// returns the hostname of the machine running splash
-  static const Str Hostname ()
-  { const size_t MAX_HOSTNAME = 64;
-    char hostname[MAX_HOSTNAME];
-    if (-1 != gethostname (hostname, MAX_HOSTNAME))
-      return Str (hostname);
-    else
-      return Str ();
-  }
-
-  /// creates a provenance that uniquely identifies the leap connected to the
-  /// machine running splash using the hostname
-  static const Str DefaultProvenance ()
-  { return "leap-" + Hostname (); }
 
 public:
-  FrameWriter ()  :  transform (Leap::Matrix::identity ()),
-                     provenance (DefaultProvenance ()) {}
-
-  void SetProvenance (Str const &p) { provenance = p; }
+  FrameWriter ()  :  transform (Leap::Matrix::identity ()) {}
 
   /// Sets up the location and orientation of the leap in order to properly
   /// transform relatively located leap events into absolutely located ones.
   void SetLocAndOrientation (Vect const& orig, Vect const& nrm, Vect const& ov)
-  { origin = VV (orig);
-    normal = VV(nrm);
-    over = VV(ov);
+  { origin = LV (orig);
+    normal = LV (nrm);
+    over = LV(ov);
     transform = Leap::Matrix (over, normal, over . cross (normal), origin);
   }
 
   /// Takes an event/frame generated from a leap and returns a Slaw that fully
   /// describes that event
   Slaw ToSlaw (Leap::Frame const& frame) const
-  { return Slaw::Map ("ts", frame . timestamp (),
-                      "id", frame . id (),
-                      "hands", ToSlaw (frame . hands ()),
-                      "pntrs", ToSlaw (frame . pointables ()),
-                      "gests", ToSlaw (frame . gestures ()));
+  { return ToSlaw (frame . hands ());
   }
 
-  /// Returns a slaw the provides the leap's location, orientation and name
-  Slaw DeviceDescription () const
-  { return Slaw::Map ("orig", ToSlaw (origin),
-                      "norm", ToSlaw (normal),
-                      "over", ToSlaw (over),
-                      "prov", provenance);
-  }
 };
 
 /// Callback handler for Leap events
@@ -219,7 +215,7 @@ public:
   SplashListener (Callback &c)
     : callback (c) {}
   virtual void onFrame (const Leap::Controller &c)
-  { callback . DepositFrame (c . frame ()); }
+  { callback . DepositGripes (c . frame ()); }
 };
 
 // Surely there's a way to get this from Leap's API...?
@@ -240,6 +236,8 @@ private:
   FrameWriter writer;
   std::list<Protein> to_deposit;
   bool stop_depositing;
+  Str orig;
+
 public:
   Splash (Str const& output_pool)
     :  Thing (),
@@ -248,11 +246,8 @@ public:
        controller (listener),
        stop_depositing (false)
   { ParticipateInPool (pool);
-    controller . enableGesture (Leap::Gesture::TYPE_CIRCLE);
-    controller . enableGesture (Leap::Gesture::TYPE_SWIPE);
-    controller . enableGesture (Leap::Gesture::TYPE_SCREEN_TAP);
-    controller . enableGesture (Leap::Gesture::TYPE_KEY_TAP);
     controller . setPolicyFlags (Leap::Controller::POLICY_BACKGROUND_FRAMES);
+    orig = "leap-reader-v" + LEAP_VERSION;
   }
 
   virtual ~Splash ()
@@ -267,10 +262,13 @@ public:
 
   /// The handler function for each Leap frame, it takes a leap frame,
   /// transforms it to a protein and deposits it to the leap pool
-  void DepositFrame (Leap::Frame const& f)
-  { Protein p (Slaw::List ("greenhouse", "leap", LEAP_VERSION),
-               Slaw::Map ("leap", writer . DeviceDescription (),
-                          "frame", writer . ToSlaw (f)));
+  void DepositGripes (Leap::Frame const& f)
+  { int64 tim = controller.now ();//FatherTime::AbsoluteTime ();
+    Protein p (Slaw::List ("gripeframe"),
+               Slaw::Map ("origins", Slaw::List ("name", orig,
+                                                 "clock", tim),
+                          "time", tim,
+                          "hands", writer . ToSlaw (f)));
 
     // The leap runs in its own thread.  Make sure that we don't try
     // to deposit two proteins at the same time.
@@ -295,8 +293,8 @@ public:
     Vect origin, normal, over;
     Str prov;
     Slaw leap = ing . MapFind ("leap");
-    if (leap . MapFind ("provenance") . Into (prov))
-      writer . SetProvenance (prov);
+    // if (leap . MapFind ("provenance") . Into (prov))
+    //   writer . SetProvenance (prov);
 
     if (leap . MapFind ("cent") . Into (origin) &&
         leap . MapFind ("norm") . Into (normal) &&
