@@ -331,11 +331,13 @@ void Setup ()
   bool loaded = false;
   if (0 < args . Count ())
     { Protein p = LoadProtein (args . Nth (0));
+      OB_LOG_WARNING ("Configuring leap from: %s", args . Nth (0) . utf8 ());
       if (! p . IsNull ())
         loaded = splash -> Configure (p);
     }
   if (! loaded)
     { Protein p = LoadProtein ("/etc/oblong/screen.protein");
+      OB_LOG_WARNING ("/etc/oblong/screen.protein");
       if (! p . IsNull ())
         loaded = splash -> Configure (p);
     }
