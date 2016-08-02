@@ -147,7 +147,7 @@ protected:
 
   Slaw ToSlaw (Leap::Hand const& h) const
   { Vect loc = GV (Point (h . stabilizedPalmPosition ()));
-    Vect aim = GV (Direction (h . direction ()));
+    Vect aim = GV (Direction (h . direction ())) . Norm ();
     Vect pnorm = GV (Direction (h . palmNormal ()));
     Vect norm = - pnorm;
     Vect up = norm . Cross (aim);
