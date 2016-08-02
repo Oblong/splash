@@ -60,13 +60,13 @@ version 0.7.9 of the Leap SDK.
 The Leap shared library must be on your `LD_LIBRARY_PATH` (or `DYLD_LIBRARY_PATH` if you're using a Mac) before you start splash.  e.g.:
 
     # With obi
-    $ export DYLD_LIBRARY_PATH=/path/to/LeapSDK/lib/libc++/
+    $ export DYLD_LIBRARY_PATH=/path/to/LeapSDK/lib
     $ obi go
 
 or
 
     # Without obi
-    $ DYLD_LIBRARY_PATH=/path/to/LeapSDK/lib/libc++/
+    $ DYLD_LIBRARY_PATH=/path/to/LeapSDK/lib
     $ build/splash
 
 ### To check that it's working
