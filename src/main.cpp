@@ -75,7 +75,9 @@ protected:
             else
               { gstring [4-t] = '|';
                 if (t == 1 && aim)
-                  aim  -> Set (p.loc);
+                  { aim -> Set (p.loc);
+                    aim -> NormSelf ();
+                  }
               }
           }
         else
@@ -148,7 +150,7 @@ protected:
   Slaw ToSlaw (Leap::Hand const& h) const
   { Vect loc = GV (Point (h . stabilizedPalmPosition ()));
     Vect aim = GV (Direction (h . direction ())) . Norm ();
-    Vect pnorm = GV (Direction (h . palmNormal ()));
+    Vect pnorm = GV (Direction (h . palmNormal ())) . Norm ();
     Vect norm = - pnorm;
     Vect up = norm . Cross (aim);
     Str type = h . isLeft () ? "LEFTISH" : "RIGHTISH";
