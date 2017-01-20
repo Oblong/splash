@@ -75,7 +75,7 @@ protected:
             else
               { gstring [4-t] = '|';
                 if (t == 1 && aim)
-                  { aim -> Set (p.loc);
+                  { aim -> Set (GV (Direction (f.direction ())));
                     aim -> NormSelf ();
                   }
               }
@@ -329,9 +329,9 @@ void Setup ()
   Splash *splash = new Splash (NULL == leap_pool ?
                                DEFAULT_POOL : leap_pool);
   bool loaded = false;
-  if (0 < args . Count ())
-    { Protein p = LoadProtein (args . Nth (0));
-      OB_LOG_WARNING ("Configuring leap from: %s", args . Nth (0) . utf8 ());
+  if (1 < args . Count ())
+    { Protein p = LoadProtein (args . Nth (1));
+      OB_LOG_WARNING ("Configuring leap from: %s", args . Nth (1) . utf8 ());
       if (! p . IsNull ())
         loaded = splash -> Configure (p);
     }

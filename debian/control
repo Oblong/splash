@@ -1,28 +1,28 @@
-Source: oblong-splash-gs3.25x1
+Source: oblong-splash-gs3.29x
 Section: non-free/oblong
 Priority: extra
 Maintainer: Dan Kegel <buildtools@oblong.com>
 Build-Depends: cmake,
                debhelper (>= 7.0.50~),
                debconf,
-               g-speak3.25,
-               oblong-greenhouse-gs3.25x,
-               oblong-webthing-2526-gs3.25x,
+               g-speak3.29,
+               oblong-greenhouse-gs3.29x,
+               oblong-webthing-2526-gs3.29x,
 Standards-Version: 3.8.4
 Homepage: FIXME
 Vcs-Git: FIXME
 Vcs-Browser: FIXME
 
-Package: oblong-splash-gs3.25x1
+Package: oblong-splash-gs3.29x
 Section: non-free/devel
 Architecture: any
 Depends: ${shlibs:Depends},
          ${misc:Depends},
 Description: FIXME
 
-Package: oblong-splash-gs3.25x1-dbg
+Package: oblong-splash-gs3.29x-dbg
 Section: non-free/devel
 Architecture: any
-Depends: oblong-splash-gs3.25x1
+Depends: oblong-splash-gs3.29x
 Description: Debug symbols for Oblong splash
  If you run into trouble with splash, install this for mo better backtraces.
