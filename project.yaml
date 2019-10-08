@@ -8,14 +8,13 @@ name: 'splash'
 # Build task
 # ----------
 # Comma-separated list of command line arguments passed to cmake
-cmake-args: ['-G "Unix Makefiles"',
-             '-DCMAKE_BUILD_TYPE=RelWithDebInfo',
+cmake-args: ['-DCMAKE_BUILD_TYPE=RelWithDebInfo',
              '-DCMAKE_EXPORT_COMPILE_COMMANDS=1']
 
 # Comma-separated list of arguments passed to cmake --build
 # These are sensitive to the build system generator
 # specified in the cmake-args step
-build-args: ['-j8 -l8']
+build-args: ['-j8', '-l8']
 
 # The directory to perform the out-of-source cmake build
 build-dir: "build"
@@ -29,22 +28,42 @@ build-dir: "build"
 # clean-cmd: ""
 
 # Stop task
-# ----------
-# Comma-separated list of command-line commands to run when stopping splash
-on-stop-cmds: []
+# ---------
+# List of command-line invocations to run on target hosts before stopping
+pre-stop-cmds: []
+
+# List of commands invoked on your machine before issuing local/remote stop
+local-pre-stop-cmds: []
 
 # Override the default obi stop task
 # stop-cmd: ""
 
+# List of command-line invocations run on target hosts after stopping
+post-stop-cmds: []
+
+# List of command-line invocations run on your machine after stopping
+local-post-stop-cmds: []
+
 # Rsync task
-# -----------
+# ----------
 # Comma-separated list of files to ignore when rsyncing to remote machines
-rsync-excludes: [".git", "build"]
+rsync-excludes: [".git", "build", "*.trace", ".DS_Store", "fetched.*"]
+
+# List of additional parameters to pass to rsync
+# rsync-extra-opts: "--copy-links --partial"
+
+# Fetch task
+# ----------
+# List of files to retrieve if not specified as obi CLI arguments
+# fetch: []
 
 # Launch task
 # -----------
 # Comma-separated list of arguments to pass to splash when it is run
 launch-args: []
+
+# YAML map of environment variables to be passed to target executable
+env-vars: {}
 
 # Path to the project binary from the top-level project directory
 # The target location is determined by your cmake file
@@ -57,12 +76,13 @@ pre-launch-cmds: []
 post-launch-cmds: []
 
 # Override the default command to launch the application in the obi go task
+# Overrides obi's behavior of concatenating launch args, debuggers, target, etc.
 # launch-cmd: ""
 
 # Debuggers to use in obi go --debug=<debugger>
 debuggers:
   gdb: "gdb -ex run --args"
-  lldb: "lldb --"
+  lldb: "lldb -o run --"
   strace: "sudo strace"
   apitrace: "apitrace trace"
 
@@ -74,27 +94,5 @@ rooms:
   # This setting governs what happens when the application runs on
   # your local machine.
   localhost:
-    env-vars: {OB_SHARE_PATH: 'share/splash:$OB_SHARE_PATH'}
-    pools: {wands-pool: 'wands'}
-    screen-protein: /etc/oblong/screen.protein
-    feld-protein: /etc/oblong/feld.protein
-    launch-args: []
-
-  # Settings for another development environment. obi supports building and
-  # launching on remote environments including any number of machines. You can
-  # set those up here. The following is a theoretical setup that would build and
-  # run across 3 machines, using the login 'my-user'. A pre-requisite to this
-  # would be to ensure you have ssh keys set up on each of the machines listed
-  # in 'hosts'.
-  my-room:
-    env-vars: {DISPLAY: ':0', OB_SHARE_PATH: 'share/splash:$OB_SHARE_PATH'}
-    launch-args: [
-      '--wands-pool=tcp://192.168.1.4/wands',
-      '--config=share/splash/config.protein',
-      '--room=/etc/oblong/room.protein',
-      /etc/oblong/room-screen.protein,
-      /etc/oblong/room-feld.protein
-    ]
-    user: my-user
-    hosts: [192.168.1.1, 192.168.1.2, 192.168.1.3]
-    build-args: ["-j32 -l32"]
+    env-vars: {DYLD_LIBRARY_PATH: '$LEAPSDK_HOME/lib'}
+    launch-args: [ ]

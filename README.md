@@ -1,25 +1,25 @@
 # Splash
 
-Splash is a [Greenhouse](http://greenhouse.oblong.com/) program that transforms the Leap Motion's relative coordinates to absolute coordinates.  Splash streams its data output as a series of messages into a Greenhouse pool (named **leap**).  Any number of other programs can listen to that pool and get the data.
+Splash is a [g-speak](http://platform.oblong.com/) program that transforms the Leap Motion's relative coordinates to absolute coordinates.  Splash streams its data output as a series of messages into a pool named **leap**.  Any number of other programs can listen to that pool and get the data.
 
-(Pools are part of the Greenhouse message-passing system known as **Plasma**.  It's a lighweight publish/subscribe system that scratches some of the same itches as OSC or 0MQ's pubsub.  More details about **Plasma** [can be found here](http://greenhouse.oblong.com/reference/messaging.html#qr_pools).)
+(Pools are part of the g-speak's message-passing system known as **Plasma**.  It's a lighweight publish/subscribe system that scratches some of the same itches as OSC or 0MQ's pubsub.  More details about **Plasma** [can be found here](https://platform.oblong.com/learning/g-speak/structure/libplasma/).)
 
 Splash is a command-line utility -- it runs in the terminal only.
 
-Splash reads Leap data using the Leap SDK (which you must have already installed).  Splash also assumes you have already installed [Greenhouse](http://greenhouse.oblong.com/), a free SDK from Oblong for creating spatial, gestural, multi-modal, and multi-machine applications.
+Splash reads Leap data using the Leap SDK (which you must have already installed).  Splash also assumes you have already installed g-speak, an SDK from Oblong for creating spatial, gestural, multi-modal, and multi-machine applications. [Contact Us](mailto:platform-support@oblong.com) for licensing information.
 
-To learn more about how to set up a Greenhouse program to work with Splash and Leap Motion input, see [this tutorial on the Greenhouse site](http://greenhouse.oblong.com/learning/hardware_leap.html).
+To learn more about how to set up a g-speak program to work with Splash and Leap Motion input, see [this tutorial on the Platform site](http://greenhouse.oblong.com/learning/hardware_leap.html).
 
 ## Dependencies
 
-- g-speak platform -- a proprietary SDK provided by Oblong Industries. Contact [Oblong Industries, Inc.](mailto:solutions@oblong.com)
+- g-speak platform -- a proprietary SDK provided by Oblong Industries. Contact [Oblong Industries, Inc.](mailto:platform-support@oblong.com)
 - [LeapSDK](https://developer.leapmotion.com/documentation/cpp/index.html)
 - [CMake](https://cmake.org/)
-  - Install Mac OS X using [brew](http://brew.sh/)
+  - Mac OS X using [brew](http://brew.sh/)
 
     $ brew install cmake
 
-  - Install on Ubuntu
+  - Ubuntu
 
     $ sudo apt-get install cmake
 
@@ -43,9 +43,7 @@ or
 
 ### Leap SDK version
 
-To support the [`POLICY_BACKGROUND_FRAMES`](https://developer.leapmotion.com/articles/testing-background-leap-applications)
-flag in the Leap Motion controller, `splash` requires at least
-version 0.7.9 of the Leap SDK.
+To support the [`POLICY_BACKGROUND_FRAMES`](https://developer.leapmotion.com/articles/testing-background-leap-applications) flag in the Leap Motion controller, `splash` requires at least version 0.7.9 of the Leap SDK.
 
 
 ## Running
@@ -53,14 +51,13 @@ version 0.7.9 of the Leap SDK.
 ### Before running splash
 
 1. Connect a Leap device
-2. Verify that the Leap system is working (e.g. with the Leap's own software).
+2. Verify that the Leap system is working (e.g. with Leap's software).
 
 ### Actually running splash
 
 The Leap shared library must be on your `LD_LIBRARY_PATH` (or `DYLD_LIBRARY_PATH` if you're using a Mac) before you start splash.  e.g.:
 
     # With obi
-    $ export DYLD_LIBRARY_PATH=/path/to/LeapSDK/lib
     $ obi go
 
 or
@@ -76,7 +73,7 @@ To see the output from `splash` in a human-readable format, use the peek command
 
 ### Arguments
 
-Optionally, `splash` takes the fully qualified path to a simple settings file that describes the physical location of the Leap sensor.  The file format is as follows:
+Optionally, `splash` takes the fully qualified path to a simple YAML settings file that describes the physical location of the Leap sensor.  The file format is as follows:
 
     %YAML 1.1
     %TAG ! tag:oblong.com,2009:slaw/

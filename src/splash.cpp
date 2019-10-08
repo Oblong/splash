@@ -6,10 +6,19 @@
 // Help your Leap Motion sensor dive in to pools
 
 #include <Leap.h>
-#define WORKER
-#include "libGreenhouse/Greenhouse.h"
+
+#include <libLoam/c++/Str.h>
+#include <libPlasma/c++/Pool.h>
+#include <libBasement/UrDrome.h>
+#include <libStaging/libBasement/Hasselhoff.h>
+#include <libStaging/libPlasma/c++/PlasmaHelpers.h>
+
 #include <list>
 #include <boost/thread/mutex.hpp>
+
+using namespace oblong::basement;
+using namespace oblong::plasma;
+using namespace oblong::loam;
 
 #define MIN_CONFIDENCE 0.4
 
@@ -229,7 +238,7 @@ static const float64 DEFAULT_Y_DISTANCE = 200.0;
 /// callback handler for the controller and handles each frame using
 /// the FrameWriter class to transform a leap frame into a g-speak protein
 /// and deposits the protein into the designated output pool.
-class Splash  :  public Thing {
+class Splash  :  public KneeObject {
 private:
   Str const pool;
   SplashListener <Splash> listener;
@@ -242,12 +251,13 @@ private:
 
 public:
   Splash (Str const& output_pool)
-    :  Thing (),
+    :  KneeObject (),
        pool (output_pool),
        listener (*this),
        controller (listener),
        stop_depositing (false)
-  { ParticipateInPool (pool);
+  { // Initialize Hasselhoff and the leap pool for pool participation
+    oblong::staging::Hasselhoff::TheMainMan()->PoolParticipate(pool, pool, NULL);
     controller . setPolicyFlags (Leap::Controller::POLICY_BACKGROUND_FRAMES);
     orig = "leap-reader-v" + LEAP_VERSION;
   }
@@ -279,13 +289,15 @@ public:
       to_deposit . push_back (p);
   }
 
-  virtual void Travail ()
+  virtual ObRetort Travail (Atmosphere *atm) override
   { std::list<Protein> copy;
     { boost::mutex::scoped_lock lck (mutex);
       std::swap (copy, to_deposit);
     }
     for (Protein const& p : copy)
-      Deposit (p, pool);
+      oblong::staging::Hasselhoff::TheMainMan()->PoolDeposit(pool, p);
+
+    return OB_OK;
   }
 
   /// Reads in a configuration protein to set up the spatial layout of
@@ -324,19 +336,26 @@ public:
 
 static const char* DEFAULT_POOL = "leap";
 
-void Setup ()
-{ const char *leap_pool = getenv ("LEAP_POOL");
+int main(int argc, char **argv)
+{
+  UrDrome *ud = new UrDrome("splash", argc, argv);
+
+  const char *leap_pool = getenv("LEAP_POOL");
   Splash *splash = new Splash (NULL == leap_pool ?
                                DEFAULT_POOL : leap_pool);
+  ud->AppendChild(splash);
+
   bool loaded = false;
-  if (1 < args . Count ())
-    { Protein p = LoadProtein (args . Nth (1));
-      OB_LOG_WARNING ("Configuring leap from: %s", args . Nth (1) . utf8 ());
+  if (1 < argc)
+    { Protein p = oblong::staging::LoadProtein (argv [1]);
+      OB_LOG_WARNING ("Configuring leap from: %s", argv [1]);
       if (! p . IsNull ())
         loaded = splash -> Configure (p);
     }
   if (! loaded)
-    { Protein p = LoadProtein ("/etc/oblong/screen.protein");
+    {
+      Str screen = "/etc/oblong/screen.protein";
+      Protein p = oblong::staging::LoadProtein(screen);
       OB_LOG_WARNING ("/etc/oblong/screen.protein");
       if (! p . IsNull ())
         loaded = splash -> Configure (p);
@@ -344,4 +363,8 @@ void Setup ()
   if (! loaded)
     OB_LOG_WARNING ("Could not find or infer configuration information for "
                     "your LeapMotion");
+
+  ud->SetRespirePeriod(1 / 100.0);
+  ud->Respire();
+  ud->Delete();
 }

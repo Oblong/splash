@@ -1,0 +1,15 @@
+# debian droppings
+.debhelper
+*.debhelper.log
+debhelper-build-stamp
+files
+*.substvars
+tmp
+
+# Debian droppings with unavoidable package names; ob-set-defaults will have to munge this file, too.
+# (can't write a wildcard that matches major version suffix but not e.g. .install files)
+oblong-gs5.1-splash
+oblong-gs5.1-splash-dbg
+
+# ob-set-defaults droppings
+*.bak

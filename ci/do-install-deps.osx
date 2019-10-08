@@ -1,0 +1,38 @@
+# Part of the unattended build configuration for this project for Mac OS
+#
+# To do a clean unattended build:
+#   bau all [options]
+# For more info, see
+#   bau --help
+#   bau help
+# or https://gitlab.oblong.com/platform/docs/wikis/howto-build-packages
+#
+# The default buildshim for $_os is $PATH/bau-defaults/buildshim-$_os
+# Projects may override the whole buildshim by providing file ci/buildshim[.$_os]
+# or override individual steps by providing file ci/do-$stepname[.$_os].
+# Overridden steps can access the variables and functions defined by the default buildshim.
+
+do_install_deps() {
+  local gspeak
+  gspeak=$(bs_get_gspeak_version)
+  local yoversion
+  yoversion=$(bs_yovo2yoversion $gspeak)
+  local gspeaksuffix
+  gspeaksuffix="$(bs_short_pkg_suffix $gspeak)"  # from bau-defaults/buildshim-osx at moment
+  # Uncomment to use webthing
+  #local cefversion
+  #cefversion=$(bs_get_cef_version)
+
+  bs_install_xcode
+
+  # bau doesn't do automatic dependencies on mac, so have to list them all here
+  bs_install \
+    yobuild$yoversion \
+    g-speak$gspeaksuffix \
+    oblong-greenhouse-gs${gspeaksuffix}x \
+    oblong-staging${gspeaksuffix} \
+    # Uncomment to use webthing
+    #oblong-yobuild${yoversion}-$cefversion \
+    #oblong-webthing-${cefversion}-gs${gspeaksuffix}x \
+    #
+}
