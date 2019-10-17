@@ -1,80 +1,109 @@
 # Splash
 
-Splash is a [g-speak](http://platform.oblong.com/) program that transforms the Leap Motion's relative coordinates to absolute coordinates.  Splash streams its data output as a series of messages into a pool named **leap**.  Any number of other programs can listen to that pool and get the data.
+Splash is a [g-speak](http://platform.oblong.com/) program that transforms [Leap Motion's](https://www.leapmotion.com/) relative coordinates to absolute coordinates and converts the hand positions into g-speak's own gestural language, known as 'gripes'. Splash streams its data output as a series of messages into a pool named **gripes**.  Other g-speak programs can then connect to that pool to respond to the gestural input.
 
 (Pools are part of the g-speak's message-passing system known as **Plasma**.  It's a lighweight publish/subscribe system that scratches some of the same itches as OSC or 0MQ's pubsub.  More details about **Plasma** [can be found here](https://platform.oblong.com/learning/g-speak/structure/libplasma/).)
 
 Splash is a command-line utility -- it runs in the terminal only.
 
-Splash reads Leap data using the Leap SDK (which you must have already installed).  Splash also assumes you have already installed g-speak, an SDK from Oblong for creating spatial, gestural, multi-modal, and multi-machine applications. [Contact Us](mailto:platform-support@oblong.com) for licensing information.
+Splash reads Leap data using the [Leap SDK](https://developer-archive.leapmotion.com/documentation/v2/cpp/index.html) (which you must have already installed).  Splash also assumes you have already installed g-speak, an SDK from Oblong for creating spatial, gestural, multi-modal, and multi-machine applications. [Contact Us](mailto:platform-support@oblong.com) for licensing information.
 
-To learn more about how to set up a g-speak program to work with Splash and Leap Motion input, see [this tutorial on the Platform site](http://greenhouse.oblong.com/learning/hardware_leap.html).
+To learn more about how to set up a g-speak program to work with Splash and Leap Motion input, see [this tutorial on the Platform site](TODO).
 
 ## Dependencies
 
 - g-speak platform -- a proprietary SDK provided by Oblong Industries. Contact [Oblong Industries, Inc.](mailto:platform-support@oblong.com)
-- [LeapSDK](https://developer.leapmotion.com/documentation/cpp/index.html)
+- [LeapSDK](https://developer.leapmotion.com/documentation/cpp/index.html)  
+  We highly suggest using the latest legacy API: 2.3.1. We do not recommend using the Orion SDK as it assumes the leap controller is attached to your head.
+  - download [here](https://developer.leapmotion.com/sdk/v2) and agree to [Leap Motion's SDK Agreement](https://central.leapmotion.com/agreements/SdkAgreement)
+  - make note of where you saved your extracted folder. You will use this path later to set the LEAPSDK_HOME environment variable.
+  - run the Leap Motion Installer
+
 - [CMake](https://cmake.org/)
   - Mac OS X using [brew](http://brew.sh/)
 
-    $ brew install cmake
+    `$ brew install cmake`
 
   - Ubuntu
 
-    $ sudo apt-get install cmake
+    `$ sudo apt-get install cmake`
 
 
 ## Building
 
-Make sure to set `LEAPSDK_HOME` to the directory where your Leap SDK lives.  Then build (we use our internal build utility, [obi](https://github.com/Oblong/obi.git) which works off of cmake).
+Set `LEAPSDK_HOME` to the directory where your Leap SDK lives and then build. We use our internal build utility, [obi](https://github.com/Oblong/obi.git) which wraps cmake to make building and running locally or on remote machines a breeze.
 
-    # With obi
-    $ export LEAPSDK_HOME=/path/to/LeapSDK
-    $ obi build
+  ```bash
+  # With obi
+  $ export LEAPSDK_HOME=/path/to/LeapSDK
+  $ obi build
+  ```
 
 or
 
-    # Without obi
-    $ export LEAPSDK_HOME=/path/to/LeapSDK
-    $ mkdir build
-    $ cd build
-    $ cmake ..
-    $ make
-
-### Leap SDK version
-
-To support the [`POLICY_BACKGROUND_FRAMES`](https://developer.leapmotion.com/articles/testing-background-leap-applications) flag in the Leap Motion controller, `splash` requires at least version 0.7.9 of the Leap SDK.
-
+  ```bash
+  # With cmake
+  $ export LEAPSDK_HOME=/path/to/LeapSDK
+  $ mkdir build
+  $ cd build
+  $ cmake ..
+  $ make
+  ```
 
 ## Running
 
 ### Before running splash
 
 1. Connect a Leap device
-2. Verify that the Leap system is working (e.g. with Leap's software).
+2. Verify that the Leap system is working (e.g. with Leap's visualizer software).
 
-### Actually running splash
+### Running splash
 
 The Leap shared library must be on your `LD_LIBRARY_PATH` (or `DYLD_LIBRARY_PATH` if you're using a Mac) before you start splash.  e.g.:
 
-    # With obi
+  ```bash
+    # With obi: LD_LIBRARY_PATH is set for you in the project.yaml file used by obi
     $ obi go
+  ```
 
 or
 
+  ```bash
     # Without obi
-    $ DYLD_LIBRARY_PATH=/path/to/LeapSDK/lib
+    $ export DYLD_LIBRARY_PATH=$LEAPSDK_HOME/lib
     $ build/splash
+  ```
 
-### To check that it's working
+### Verify it's working
 
-To see the output from `splash` in a human-readable format, use the peek command at the terminal: `peek leap`.  You should see data scrolling by quickly, representing the messages that splash is depositing into the **leap** pool; when you hover a hand in view of the Leap, the data should resemble the output shown below in the **Output Format** section.
+  `$ peek gripes`
+
+You should see the messages that splash is depositing into the **gripes** pool scrolling by quickly; when you hover a hand in view of the Leap, the data should resemble the output shown below in the **Output Format** section.
 
 
-### Arguments
+## Arguments
 
-Optionally, `splash` takes the fully qualified path to a simple YAML settings file that describes the physical location of the Leap sensor.  The file format is as follows:
+#### -o, --output
 
+default:  gripes  
+description: name of output pool
+
+Any number of g-speak programs on the same machine can listen to (or "particpate in") that pool.
+
+To connect on a remote machine. Be sure to run `pool-tcp-server` on the same machine running `splash`. Then on remote machines connect via:  `tcp://your-host-name-or-ip/gripes`.
+
+#### -c, --config
+
+
+default: none
+
+Optionally, `splash` takes the fully qualified path to a simple YAML settings file that describes the physical location and orientation of the Leap sensor.  The location/orientation should make sense within the context of the screen protein you use with your g-speak application to define your space.
+
+If no config is provided, splash will assume the leap is located at the origin of the room (0, 0, 0) with a default orientation of norm/over (0, 1, 0) / (1, 0, 0).
+
+The config file format is as follows:
+
+  ```yaml
     %YAML 1.1
     %TAG ! tag:oblong.com,2009:slaw/
     --- !protein
@@ -84,100 +113,103 @@ Optionally, `splash` takes the fully qualified path to a simple YAML settings fi
         cent: [0, 0, 0]   # required, center of the leap device in absolute coordinates
         norm: [0, 1, 0]   # required, normal vector from the face of the leap device
         over: [1, 0, 0]   # required, vector pointing lengthwise along the device
-        provenance: "leap-whatever"  # optional, defaults to "leap-$HOSTNAME"
+  ```
+`norm` is usually 'up' along the Y axis, because the Leap device is usually lying on a flat surface, parallel to the floor.
 
-'norm' is usually 'up' along the Y axis, because the Leap device is usually lying on a flat surface.
+`over` is usually to the user's right (so it's positive in the X axis).
 
-'over' is usually to the user's right (so it's positive in the X axis).
-
-If a settings file is not supplied on the command line, `splash` will try to find a 'leap' section in the ingests of the `/etc/oblong/screen.protein` file.  (This file would have been installed by the Greenhouse installer.)
-
-If a 'leap' section isn't found in screen.protein, `splash` will just assume that your Leap is 500mm in front and 200mm below the center of the "main" screen described in your `/etc/oblong/screen.protein` file.
-
-If a `screen.protein` file can't be found, or if it does not contain a screen called "main", `splash` will warn you of as much and will pass the leap's data through in the native (relative) coordinates supplied by the Leap SDK.
-
-For more information on how Greenhouse works with 3D space refer to this [Spatial Considerations tutorial](http://greenhouse.oblong.com/learning/spatial.html).
-
-### Environment
-
-By default, `splash` deposits its output (a series of messages which in Oblong parlance are referred to as *proteins*') into a pool called "leap".  Any number of Greenhouse programs on the same machine can listen to (or "particpate in") that pool.
-
-If there are Greenhouse programs on a different machine that would like to listen, they can refer to the pool as "tcp://your-host-name/leap".
-
-You can optionally specify a different pool to use via the `LEAP_POOL` environment variable.
-Note that this pool must exist before you run `splash.`
-
-    $ p-create my_new_leap_pool
-    $ LEAP_POOL=my_new_leap_pool ./splash
-
+For more information on how g-speak works with 3D space refer to this [Spatial Considerations tutorial](https://platform.oblong.com/learning/spatial-operating/spatial_considerations/).
 
 ## Output Format
 
-To see the output from `splash` in a human-readable format, use the peek command.
-`peek leap` (or the name of some other pool you specified) at the command line.
+To see the output from `splash` in a human-readable format, use the peek command:
 
-`splash` produces proteins of the following format:
+```bash
+$ peek gripes # or the name of the output pool you specified at the command line.
+```
 
-    descrips:
-    - greenhouse
-    - leap
-    - 0.7.9 # The version of the Leap Motion API
-    ingests:
-      leap:
-        orig: v3float64 # the center of the Leap device itself
-        norm: v3float64 # the leap's normal vector, usually [0,1,0]
-        over: v3float64 # the direction to the leap's right, usually [1,0,0]
-        prov: Str # the provenance associated with the leap
-      frame:
-        ts: int64 # Frame timestamp
-        id: int64 # Frame ID
-        hands: # a list of hands
-        - id: int64
-          dir: v3float64 # the direction the hand is pointing in
-          plmnrm: v3float64 # palm normal vector
-          plmpos: v3float64 # palm position
-          plmvel: v3float64 # palm velocity
-          center: v3float64 # Center of a sphere fit to the hand
-          radius: float64 # radius of a sphere fit to the hand
-          orig: v3float64 # palm position, ob-named
-          thru: v3float64 # orig + dir
-        pntrs: # a list of pointers (fingers, tools, etc.)
-        - id: int64
-          dir: v3float64 # the direction the pointer is pointing in
-          hand: int64 # the ID of the hand the pointer is associated with
-          isfngr: bool # Does the leap believe that this pointer is a finger?
-          istool: bool # Does the leap believe that this pointer is a tool?
-          length: float64 # the length of the pointer
-          t-pos: v3float64 # Tip position
-          t-vel: v3float64 # Tip velocity
-          width: float64 # Width of the pointer
-          orig: v3float64 # tip position again, ob-named
-          thru: v3float64 # orig + dir * length
-        gests: # A list of gestures
-        - id: int64
-          dur: int64 # How long has the gesture been active, microseconds.
-          dursec: float64 # How long has the gesture been active, seconds.
-          hands: # a list of hand ids associated with the gesture
-          - int64
-          - int64
-          pntrs: # a list of pointer ids associated with the gesture
-          - int64
-          - int64
-          state: Str # one of "start", "update", "stop" or "invalid"
-          type: Str # one of "circle", "swipe", "s-tap", "k-tap" or "invalid"
-          point: int64 # Id of pointer, only for circle, swipe, s-tap or k-tap
-          ## The following occur in a "circle" gesture
-          cent: v3float64 # Center of a "circle" gesture
-          norm: v3float64 # Normal of a "circle" gesture
-          prog: float64 # The number of times a finger has traversed a "circle"
-          radius: float64 # The radius of a "circle" gesture
-          ## The following occur in a "swipe" gesture
-          dir: v3float64 # Direction of the swipe
-          pos: v3float64 # Current position of the swipe
-          speed: float64 # Speed of the swipe in mm/second
-          start: v3float64 # The starting position of the swipe
-          ## The following occur in s-tap (screen tap) and k-tap (key tap) gestures
-          dir: v3float64 # Direction of the tap
-          pos: v3float64 # Position of the tap
-          prog: float64 # Always 1.0, for whatever reason
+See below for an example protein. There's a lot to unpack in these proteins but fortunately for you, g-speak apps will do that for you. The only lines that are likely of interest for you are the `gripe` values for the `LEFTISH` and `RIGHTISH` hands. These values represent the gesture splash (and the Leap sensor) believe your hands to be making at that time. Check out [this ancient document](https://platform.oblong.com/wp-content/uploads/2018/01/g-speak-gripes.pdf) for an overview of the gripe symbols and how to decipher them. Note: a `_____:__` value indicates that a gesture is currently not found. If you are getting valid input, you should see gripes like `^^^^>:-x` (which would indicate a fist with your thumb on top). Below is an example protein showing the left hand pointing with one finger, thumb curled in, and palm facing the floor while the right hand is pointing with one finger, thumb out, and palm facing left.
 
+```yaml
+descrips:
+- gripeframe
+ingests:
+  origins:
+  - name
+  - leap-reader
+  - clock
+  - 162220055363
+  time: 162220055363
+  hands:
+  - gripe: ^^^|>:vx
+    type: LEFTISH
+    loc: !vector [-92.518272399902344, 194.9117431640625, 22.707260131835938]
+    aim: !vector [-0.0094077370313990112, -0.018713417875257328, -0.99978062717546901]
+    back:
+      loc: !vector [-92.518272399902344, 194.9117431640625, 22.707260131835938]
+      norm: !vector [0.12501287733093325, 0.92654373283226743, 0.35480768262636142]
+      over: !vector [0.98605561853476631, -0.15562093010566733, 0.058961370990380658]
+      occluded: true
+    fingers:
+    - type: PINKY
+      loc: !vector [-109.41815948486328, 152.60935974121094, 12.658197402954102]
+      norm: !vector [0.0, 0.0, 0.0]
+      over: !vector [0.0, 0.0, 0.0]
+      occluded: false
+    - type: RING
+      loc: !vector [-99.647392272949219, 139.78535461425781, 14.543222427368164]
+      norm: !vector [0.0, 0.0, 0.0]
+      over: !vector [0.0, 0.0, 0.0]
+      occluded: false
+    - type: MIDDLE
+      loc: !vector [-88.495918273925781, 135.19866943359375, 11.340911865234375]
+      norm: !vector [0.0, 0.0, 0.0]
+      over: !vector [0.0, 0.0, 0.0]
+      occluded: false
+    - type: INDEX
+      loc: !vector [-68.601226806640625, 204.47418212890625, -62.218631744384766]
+      norm: !vector [0.0, 0.0, 0.0]
+      over: !vector [0.0, 0.0, 0.0]
+      occluded: false
+    - type: THUMB
+      loc: !vector [-85.304008483886719, 165.55001831054688, -2.9797260761260986]
+      norm: !vector [0.0, 0.0, 0.0]
+      over: !vector [0.0, 0.0, 0.0]
+      occluded: false
+  - gripe: ^^^|-:-x
+    type: RIGHTISH
+    loc: !vector [95.140037536621094, 188.48432922363281, 13.311689376831055]
+    aim: !vector [-0.3574539035920351, -0.1326181557520599, -0.92446694455331302]
+    back:
+      loc: !vector [95.140037536621094, 188.48432922363281, 13.311689376831055]
+      norm: !vector [0.99667198956339709, 0.042713508648656882, -0.06942983075494992]
+      over: !vector [-0.045617955036583717, 0.99812544703445361, -0.040799438238193833]
+      occluded: true
+    fingers:
+    - type: PINKY
+      loc: !vector [67.867095947265625, 165.38813781738281, 6.5487613677978516]
+      norm: !vector [0.0, 0.0, 0.0]
+      over: !vector [0.0, 0.0, 0.0]
+      occluded: false
+    - type: RING
+      loc: !vector [62.203315734863281, 176.51449584960938, 5.4022808074951172]
+      norm: !vector [0.0, 0.0, 0.0]
+      over: !vector [0.0, 0.0, 0.0]
+      occluded: false
+    - type: MIDDLE
+      loc: !vector [54.803092956542969, 192.96875, 0.54686969518661499]
+      norm: !vector [0.0, 0.0, 0.0]
+      over: !vector [0.0, 0.0, 0.0]
+      occluded: false
+    - type: INDEX
+      loc: !vector [75.131324768066406, 200.17893981933594, -72.213287353515625]
+      norm: !vector [0.0, 0.0, 0.0]
+      over: !vector [0.0, 0.0, 0.0]
+      occluded: false
+    - type: THUMB
+      loc: !vector [85.564544677734375, 278.57528686523438, 19.203586578369141]
+      norm: !vector [0.0, 0.0, 0.0]
+      over: !vector [0.0, 0.0, 0.0]
+      occluded: false
+...
+```

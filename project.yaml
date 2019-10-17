@@ -94,5 +94,6 @@ rooms:
   # This setting governs what happens when the application runs on
   # your local machine.
   localhost:
-    env-vars: {DYLD_LIBRARY_PATH: '$LEAPSDK_HOME/lib'}
+    env-vars:
+      DYLD_LIBRARY_PATH: '$LEAPSDK_HOME/lib'
     launch-args: [ ]

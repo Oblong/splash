@@ -1,12 +1,19 @@
 
 /* (c)  oblong industries */
 
-// # splash
-//
-// Help your Leap Motion sensor dive in to pools
+const char *Usage(R"(
+Overview:
+  Splash is a g-speak program that transforms Leap Motion's relative
+  coordinates to absolute coordinates and converts the hand positions
+  into g-speak's own gestural language, known as 'gripes'. Splash
+  streams its data output as a series of messages into a pool.
+
+To exit: 'Ctrl + c' or 'obi stop' in the terminal
+)");
 
 #include <Leap.h>
 
+#include <libLoam/c++/ArgParse.h>
 #include <libLoam/c++/Str.h>
 #include <libPlasma/c++/Pool.h>
 #include <libBasement/UrDrome.h>
@@ -28,7 +35,6 @@ class FrameWriter
  protected:
   Leap::Vector origin, normal, over;
   Leap::Matrix transform;
-  //  Str provenance;
 
   struct phalange
   {
@@ -73,8 +79,6 @@ class FrameWriter
     phalange phalanges[5] = {phalange ("THUMB"), phalange ("INDEX"),
                              phalange ("MIDDLE"), phalange ("RING"),
                              phalange ("PINKY")};
-    // for (int i = 0)
-    // Str types [5] = { "THUMB", "INDEX", "MIDDLE", "RING", "PINKY" };
     for (int i = fl.count () - 1; i >= 0; i--)
       {
         Leap::Finger f = fl[i];
@@ -179,6 +183,8 @@ class FrameWriter
     Vect pnorm = GV (Direction (h.palmNormal ())).Norm ();
     Vect norm = -pnorm;
     Vect up = norm.Cross (aim);
+    if (h.isLeft ())
+      up = -up;
     Str type = h.isLeft () ? "LEFTISH" : "RIGHTISH";
     bool occ = h.confidence () >= MIN_CONFIDENCE;
     Str gripe = "_____:__";
@@ -247,11 +253,6 @@ class SplashListener : public Leap::Listener
   }
 };
 
-// Surely there's a way to get this from Leap's API...?
-static const Str LEAP_VERSION = "0.7.9";
-static const float64 DEFAULT_Z_DISTANCE = 500.0;
-static const float64 DEFAULT_Y_DISTANCE = 200.0;
-
 /// The main class type for Splash. It sets up the leap controller, the
 /// callback handler for the controller and handles each frame using
 /// the FrameWriter class to transform a leap frame into a g-speak protein
@@ -279,7 +280,7 @@ class Splash : public KneeObject
     oblong::staging::Hasselhoff::TheMainMan ()->PoolParticipate (pool, pool,
                                                                  NULL);
     controller.setPolicyFlags (Leap::Controller::POLICY_BACKGROUND_FRAMES);
-    orig = "leap-reader-v" + LEAP_VERSION;
+    orig = "leap-reader";
   }
 
   virtual ~Splash ()
@@ -326,68 +327,57 @@ class Splash : public KneeObject
   /// the leap
   bool Configure (Protein const &p)
   {
-    Slaw ing = p.Ingests ();
-    Vect origin, normal, over;
-    Str prov;
-    Slaw leap = ing.MapFind ("leap");
-    // if (leap . MapFind ("provenance") . Into (prov))
-    //   writer . SetProvenance (prov);
-
-    if (leap.MapFind ("cent").Into (origin)
-        && leap.MapFind ("norm").Into (normal)
-        && leap.MapFind ("over").Into (over))
+    // If no explicit Leap configuration is provided, assume
+    // the leap is located at the room origin with a typical
+    // norm/over ([0, 1, 0] / [1, 0, 0])
+    Vect origin;
+    Vect normal (0, 1, 0);
+    Vect over (1, 0, 0);
+    if (!p.IsNull ())
       {
-        writer.SetLocAndOrientation (origin, normal, over);
-        return true;
+        Slaw leap = p.Ingests ().MapFind ("leap");
+        if (!leap.MapFind ("cent").Into (origin)
+            || !leap.MapFind ("norm").Into (normal)
+            || !leap.MapFind ("over").Into (over))
+          return false;
       }
+    writer.SetLocAndOrientation (origin, normal, over);
 
-    // If there's no explicit Leap information, infer it from
-    // the screen protein, using the ``main'' screen.  We'll
-    // assume that the leap is about 50cm back and 20 cm down
-    // from the center of the screen and is pointing up.
-    Slaw screen = ing.MapFind ("screens").MapFind ("main");
-    if (screen.MapFind ("cent").Into (origin)
-        && screen.MapFind ("over").Into (over))
-      {
-        normal = Vect (0, 1, 0);
-        origin -= DEFAULT_Y_DISTANCE * normal.Norm ()
-                  + DEFAULT_Z_DISTANCE * normal.Cross (over).Norm ();
-        writer.SetLocAndOrientation (origin, normal, over);
-        return true;
-      }
-    return false;
+    OB_LOG_INFO ("Running splash:\n"
+                 "  Output Pool: %s\n"
+                 "  Leap Configuration:\n"
+                 "    Loc:   %s\n"
+                 "    Norm:  %s\n"
+                 "    Over:  %s", pool.utf8 (), origin.AsStr ().utf8 (),
+                 normal.AsStr ().utf8 (), over.AsStr ().utf8 ());
+    return true;
   }
 };
 
-static const char *DEFAULT_POOL = "leap";
-
 int main (int argc, char **argv)
 {
-  UrDrome *ud = new UrDrome ("splash", argc, argv);
+  Str leap_config, leap_pool = "gripes";
+  ArgParse ap (argc, argv);
+  ap.ArgString ("output", "\aname of output pool", &leap_pool, true);
+  ap.ArgString ("config", "\apath to screen or leap configuration file",
+                &leap_config);
+  ap.Alias ("output", "o");
+  ap.Alias ("config", "c");
+  ap.UsageHeader(Usage);
+  ap.EasyFinish (0, 0);
 
-  const char *leap_pool = getenv ("LEAP_POOL");
-  Splash *splash = new Splash (NULL == leap_pool ? DEFAULT_POOL : leap_pool);
+  // Create Drome
+  UrDrome *ud = new UrDrome("splash", ap.Leftovers());
+
+  Splash *splash = new Splash (leap_pool);
   ud->AppendChild (splash);
 
-  bool loaded = false;
-  if (1 < argc)
-    {
-      Protein p = oblong::staging::LoadProtein (argv[1]);
-      OB_LOG_WARNING ("Configuring leap from: %s", argv[1]);
-      if (!p.IsNull ())
-        loaded = splash->Configure (p);
-    }
-  if (!loaded)
-    {
-      Str screen = "/etc/oblong/screen.protein";
-      Protein p = oblong::staging::LoadProtein (screen);
-      OB_LOG_WARNING ("/etc/oblong/screen.protein");
-      if (!p.IsNull ())
-        loaded = splash->Configure (p);
-    }
-  if (!loaded)
-    OB_LOG_WARNING ("Could not find or infer configuration information for "
-                    "your LeapMotion");
+  Protein p = Protein::Null ();
+  if (!leap_config.IsEmpty ())
+    p = oblong::staging::LoadProtein (leap_config);
+  if (!splash->Configure (p))
+    OB_FATAL_ERROR("Could not parse leap configuration file: %s",
+                   leap_config.utf8 ());
 
   ud->SetRespirePeriod (1 / 100.0);
   ud->Respire ();
